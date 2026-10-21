@@ -6,7 +6,7 @@ export const CITY_MAP_VIEWS: Record<MapCity, ScreenMapViewState> = {
     london: {
         longitude: -0.1749,
         latitude: 51.4988,
-        zoom: 9,
+        zoom: 12,
         bearing: 0,
         pitch: 0
     },

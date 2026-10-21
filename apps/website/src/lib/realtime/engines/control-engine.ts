@@ -1,5 +1,6 @@
 import { throttle } from '@tanstack/pacer';
 
+import { parseTflLayers, type TflLayers } from '../../tfl/types';
 import { loadArcSegmentsDataset } from '../arc-segments';
 import { getCityMapView, isMapCity } from '../map-cities';
 import { controlStore } from '../stores/control-store';
@@ -72,6 +73,12 @@ export class ControlEngine extends BusEngine<ControlStoreState> {
         }
 
         return globalWithControlEngine.__controlEngineInstance;
+    }
+
+    setTflLayers(patch: Partial<TflLayers>) {
+        const layers = { ...this.store.state.tflLayers, ...patch };
+        this.store.setState((previous) => ({ ...previous, tflLayers: layers }));
+        this.send({ type: 'tfl/layers', layers });
     }
 
     setSliderInteracting(isSliderInteracting: boolean) {
@@ -147,6 +154,11 @@ export class ControlEngine extends BusEngine<ControlStoreState> {
     }
 
     protected override onMessage(message: BusMessage) {
+        if (message.type === 'tfl/layers') {
+            const layers = parseTflLayers(message.layers);
+            if (layers) this.store.setState((previous) => ({ ...previous, tflLayers: layers }));
+            return;
+        }
         if (message.type === 'control/slider') {
             const sliderMessage = message as ControlSliderMessage;
             if (typeof sliderMessage.value !== 'number') return;
@@ -212,6 +224,9 @@ export class ControlEngine extends BusEngine<ControlStoreState> {
     protected override onHello(hello: HelloBusMessage) {
         const state = hello.state;
         if (!state) return;
+
+        const layers = parseTflLayers(state.tflLayers);
+        if (layers) this.store.setState((previous) => ({ ...previous, tflLayers: layers }));
 
         // Rehydrate control UI from bus snapshot so newly opened tablets are immediately in sync.
         this.store.setState((prev) => {

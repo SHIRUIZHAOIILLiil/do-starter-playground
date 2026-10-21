@@ -5,9 +5,11 @@ import { createFileRoute, useLocation } from '@tanstack/react-router';
 import { Map, type MapRef } from '@vis.gl/react-maplibre';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { createTflDeckLayer, TflMapLayers, tflMarkers } from '../components/tfl-map-layers';
 import { screenEngine } from '../lib/realtime/engines/screen-engine';
 import { useScreenStore } from '../lib/realtime/stores/screen-store';
 import type { ArcSegment, ScreenMapViewState } from '../lib/realtime/types';
+import { useTflData } from '../lib/tfl/client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -63,6 +65,11 @@ function ScreenPage() {
     const mapView = useScreenStore((state) => state.mapView);
     const arcSegments = useScreenStore((state) => state.arcSegments);
     const selectedSegmentIndexes = useScreenStore((state) => state.selectedSegmentIndexes);
+    const tflLayers = useScreenStore((state) => state.tflLayers);
+    const connection = useScreenStore((state) => state.connection);
+    const { feeds } = useTflData();
+    const liveMarkers = useMemo(() => tflMarkers(feeds, tflLayers), [feeds, tflLayers]);
+    const liveLayer = useMemo(() => createTflDeckLayer(liveMarkers), [liveMarkers]);
     const [isClient, setIsClient] = useState(false);
     const [useDeckWrapper, setUseDeckWrapper] = useState(false);
     const [animatedBaseMapView, setAnimatedBaseMapView] = useState(mapView);
@@ -142,11 +149,12 @@ function ScreenPage() {
     }, [animatedBaseMapView, screenC, screenR]);
 
     const filteredArcSegments = useMemo(() => {
+        if (!tflLayers.starterArcs) return [];
         // Empty selection means "show all" for quick demo exploration.
         if (selectedSegmentIndexes.length === 0) return arcSegments;
         const selectedIndexSet = new Set(selectedSegmentIndexes);
         return arcSegments.filter((_, index) => selectedIndexSet.has(index));
-    }, [arcSegments, selectedSegmentIndexes]);
+    }, [arcSegments, selectedSegmentIndexes, tflLayers.starterArcs]);
 
     const curvedSegments = useMemo(
         () => buildCurvedSegments(filteredArcSegments),
@@ -419,23 +427,12 @@ function ScreenPage() {
         <main className="pointer-events-none h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100">
             <div className="relative flex h-full w-full items-center justify-center">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(34,197,94,0.14),transparent_40%),radial-gradient(circle_at_80%_70%,rgba(14,165,233,0.12),transparent_45%)]" />
-                <div className="relative z-30 flex h-full w-full flex-col items-center justify-center gap-4">
-                    <p className="text-sm tracking-[0.35em] text-zinc-400 uppercase md:text-lg">
-                        Screen Node
-                    </p>
-                    <h1 className="text-5xl font-semibold tracking-tight md:text-6xl">
-                        /screen?c={screenC}&r={screenR}
-                    </h1>
-                    <div className="text-md rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 py-1 text-emerald-300 md:text-3xl">
-                        Ready
-                    </div>
-                </div>
                 <div className="absolute inset-0 z-200">
                     {isClient && useDeckWrapper ? (
                         <DeckGL
                             controller={false}
                             viewState={localScreenMapView}
-                            layers={[markerLayer, lineLayer]}
+                            layers={[markerLayer, lineLayer, liveLayer]}
                             style={{ width: '100%', height: '100%' }}
                         >
                             <Map reuseMaps attributionControl={false} mapStyle={MAP_STYLE} />
@@ -457,7 +454,62 @@ function ScreenPage() {
                             style={{ width: '100%', height: '100%' }}
                         />
                     ) : null}
+                    {!useDeckWrapper ? (
+                        <TflMapLayers map={mapInstance} markers={liveMarkers} />
+                    ) : null}
                 </div>
+                <div className="absolute inset-x-0 top-0 z-300 flex justify-between gap-[2vw] bg-zinc-950/85 px-[2vw] py-[1.5vh] text-[clamp(18px,2.5vw,64px)]">
+                    <h1>
+                        TfL London · {screenC},{screenR}
+                    </h1>
+                    <span className="text-zinc-400">{isClient ? connection : 'connecting'}</span>
+                </div>
+                {screenC === 0 && screenR === 0 ? (
+                    <aside className="absolute top-[12vh] left-[2vw] z-300 max-w-[65vw] rounded-[1vw] bg-zinc-950/85 p-[2vw] text-[clamp(18px,2.2vw,56px)]">
+                        <p className="mb-[1vh] text-emerald-300">
+                            Rail status · {feeds.rail?.state.toUpperCase() ?? 'LOADING'}
+                        </p>
+                        {feeds.rail?.items
+                            .filter((line) => line.statuses.some((s) => s.severity !== 10))
+                            .slice(0, 6)
+                            .map((line) => (
+                                <p key={line.id} className="mb-[1vh]">
+                                    {line.name}: {line.statuses.map((s) => s.label).join(' / ')}
+                                </p>
+                            ))}
+                        {feeds.rail &&
+                        !feeds.rail.items.some((line) =>
+                            line.statuses.some((s) => s.severity !== 10)
+                        ) ? (
+                            <p>No disruptions reported</p>
+                        ) : null}
+                        <p className="text-zinc-400">
+                            {feeds.rail?.items.length ?? '—'} lines · full details in overview
+                        </p>
+                    </aside>
+                ) : null}
+                <footer className="absolute inset-x-0 bottom-0 z-300 bg-zinc-950/85 px-[2vw] py-[1.5vh] text-[clamp(16px,2vw,48px)]">
+                    <p>
+                        Roads {feeds.roads?.items.length ?? '—'} ·{' '}
+                        {feeds.roads?.state.toUpperCase() ?? 'LOADING'} | Bikes{' '}
+                        {feeds.bikes?.items.length ?? '—'} ·{' '}
+                        {feeds.bikes?.state.toUpperCase() ?? 'LOADING'}
+                    </p>
+                    <p className="text-[0.7em] text-zinc-400">
+                        Amber: road events · Teal: bikes · Pink: empty · Grey: unknown /
+                        unavailable. Data: TfL · Map: CARTO / OpenStreetMap.
+                    </p>
+                    {Object.values(feeds).some((feed) => feed?.state === 'mock') ? (
+                        <p className="text-amber-300">
+                            MOCK: synthetic examples, not live observations.
+                        </p>
+                    ) : null}
+                    {Object.values(feeds).some((feed) => feed?.state === 'stale') ? (
+                        <p className="text-amber-300">
+                            STALE: showing last successful observations.
+                        </p>
+                    ) : null}
+                </footer>
             </div>
         </main>
     );

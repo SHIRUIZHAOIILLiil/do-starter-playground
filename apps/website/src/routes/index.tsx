@@ -9,6 +9,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { TflPanel } from '../components/tfl-panel';
 import { useTheme } from '../lib/theme-provider';
 
 type WallScreen = {
@@ -94,7 +95,7 @@ function HomePage() {
     };
 
     return (
-        <main className="mx-auto flex h-screen w-full max-w-7xl flex-col gap-4 overflow-hidden px-4 py-4 text-[var(--foreground)] md:px-6">
+        <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 text-[var(--foreground)] md:px-6">
             <section className="flex items-center justify-between">
                 <h1 className="text-lg font-semibold tracking-tight md:text-xl">
                     DO Dev Playground
@@ -114,7 +115,7 @@ function HomePage() {
                 </button>
             </section>
 
-            <section className="flex min-h-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
+            <section className="flex shrink-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
                 <div className="mb-2 flex items-center justify-between">
                     <h2 className="text-sm font-medium text-[var(--foreground)]">
                         Mini-DO (2 x 3) · 1920x1080 per unit
@@ -124,8 +125,8 @@ function HomePage() {
                     </span>
                 </div>
 
-                <div className="bg-back m-auto flex h-fit items-start justify-center overflow-hidden">
-                    <div className="bg-back aspect-[8/3] h-full max-h-full w-full shadow-lg">
+                <div className="bg-back flex w-full items-start justify-center overflow-hidden">
+                    <div className="bg-back aspect-[8/3] w-full shadow-lg">
                         {/*
                           Simulator wall:
                           - each iframe acts as one physical display node
@@ -148,6 +149,8 @@ function HomePage() {
                     </div>
                 </div>
             </section>
+
+            <TflPanel />
 
             <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
                 <div className="mb-2">
@@ -215,7 +218,7 @@ function HomePage() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="h-[25vh] min-h-[110px] bg-[var(--card)]">
+                            <div className="h-[38vh] min-h-[280px] bg-[var(--card)]">
                                 <iframe
                                     src={buildControlSrc(panel)}
                                     title={panel.label}

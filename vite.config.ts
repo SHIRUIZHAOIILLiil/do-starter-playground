@@ -4,7 +4,10 @@ export default defineConfig({
     staged: {
         '*': 'vp check --fix'
     },
-    lint: { options: { typeAware: true, typeCheck: true } },
+    lint: {
+        options: { typeAware: true, typeCheck: true },
+        ignorePatterns: ['**/.output/**', '**/.tanstack/**', '**/routeTree.gen.ts']
+    },
     fmt: {
         tabWidth: 4,
         semi: true,

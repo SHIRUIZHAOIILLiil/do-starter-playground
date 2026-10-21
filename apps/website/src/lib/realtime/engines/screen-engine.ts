@@ -1,3 +1,4 @@
+import { parseTflLayers } from '../../tfl/types';
 import { loadArcSegmentsDataset } from '../arc-segments';
 import { getCityMapView, isMapCity } from '../map-cities';
 import { screenStore } from '../stores/screen-store';
@@ -78,6 +79,11 @@ export class ScreenEngine extends BusEngine<ScreenStoreState> {
     }
 
     protected override onMessage(message: BusMessage) {
+        if (message.type === 'tfl/layers') {
+            const layers = parseTflLayers(message.layers);
+            if (layers) this.store.setState((previous) => ({ ...previous, tflLayers: layers }));
+            return;
+        }
         if (message.type === 'screen/map-view') {
             const mapViewMessage = message as ScreenMapViewMessage;
             this.applyMapViewMessage(mapViewMessage);
@@ -92,6 +98,8 @@ export class ScreenEngine extends BusEngine<ScreenStoreState> {
 
     protected override onHello(hello: HelloBusMessage) {
         if (!hello.state) return;
+        const layers = parseTflLayers(hello.state.tflLayers);
+        if (layers) this.store.setState((previous) => ({ ...previous, tflLayers: layers }));
         // Apply the same message handlers used for live events so hello-state and realtime updates
         // follow one code path and stay behaviorally consistent.
         this.applyMapViewMessage({

@@ -1,3 +1,5 @@
+import { DEFAULT_TFL_LAYERS, type TflLayers } from '../tfl/types';
+
 export type BusMessage = {
     // Keep message kinds namespaced (`control/*`, `screen/*`).
     type: string;
@@ -25,6 +27,7 @@ export type ScreenSegmentSelectionMessage = BusMessage & {
 export type MapCity = 'london' | 'paris' | 'berlin' | 'madrid' | 'rome' | 'amsterdam';
 
 export type BusSharedState = {
+    tflLayers: TflLayers;
     city: MapCity;
     zoom: number;
     selectedSegmentIndexes: number[];
@@ -76,6 +79,7 @@ export const createInitialEngineStoreState = (role: EngineRole): EngineStoreStat
 });
 
 export type ControlStoreState = EngineStoreState & {
+    tflLayers: TflLayers;
     sliderValue: number;
     isSliderInteracting: boolean;
     selectedCity: MapCity;
@@ -83,6 +87,7 @@ export type ControlStoreState = EngineStoreState & {
 };
 
 export type ScreenStoreState = EngineStoreState & {
+    tflLayers: TflLayers;
     mapView: ScreenMapViewState;
     arcSegments: ArcSegment[];
     selectedSegmentIndexes: number[];
@@ -90,19 +95,21 @@ export type ScreenStoreState = EngineStoreState & {
 };
 
 export const createInitialControlStoreState = (): ControlStoreState => ({
+    tflLayers: { ...DEFAULT_TFL_LAYERS },
     ...createInitialEngineStoreState('control'),
-    sliderValue: 25,
+    sliderValue: 50,
     isSliderInteracting: false,
     selectedCity: 'london',
     selectedSegmentIndexes: []
 });
 
 export const createInitialScreenStoreState = (): ScreenStoreState => ({
+    tflLayers: { ...DEFAULT_TFL_LAYERS },
     ...createInitialEngineStoreState('screen'),
     mapView: {
         longitude: -0.1749,
         latitude: 51.4988,
-        zoom: 9,
+        zoom: 12,
         bearing: 0,
         pitch: 0
     },

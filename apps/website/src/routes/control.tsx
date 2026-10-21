@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 
 import { Button } from '../components/button';
 import { Slider } from '../components/slider';
@@ -22,6 +23,8 @@ export const Route = createFileRoute('/control')({
 });
 
 function ControlPage() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
     // `/control` models a handheld/operator endpoint:
     // - it sends intent (city, zoom, selection) into the websocket bus
     // - it does not render the heavy map visuals itself
@@ -31,6 +34,8 @@ function ControlPage() {
     const sliderValue = useControlStore((state) => state.sliderValue);
     const selectedCity = useControlStore((state) => state.selectedCity);
     const selectedSegmentIndexes = useControlStore((state) => state.selectedSegmentIndexes);
+    const tflLayers = useControlStore((state) => state.tflLayers);
+    const connection = useControlStore((state) => state.connection);
     // Static city list is intentionally explicit for educational readability.
     const cities: Array<{ value: MapCity; label: string }> = [
         { value: 'london', label: 'London' },
@@ -41,21 +46,47 @@ function ControlPage() {
         { value: 'amsterdam', label: 'Amsterdam' }
     ];
 
+    // Socket state may arrive before hydration; render shared controls after mount.
+    if (!mounted) return <main className="p-3 text-xs">Connecting control…</main>;
+
     return (
-        <main className="h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+        <main className="h-screen w-screen overflow-auto bg-[var(--background)] text-[var(--foreground)]">
             <div className="flex h-full w-full flex-col p-3">
                 <header className="mb-3 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2">
                     <div>
                         <p className="text-[10px] tracking-[0.2em] text-[var(--muted-foreground)] uppercase">
                             Operator
                         </p>
-                        <h1 className="text-sm font-semibold">Control Panel {operator}</h1>
+                        <h1 className="text-sm font-semibold">
+                            Control Panel {operator} · {connection}
+                        </h1>
                     </div>
                     <span className="rounded-full bg-[var(--primary)] px-2 py-1 text-[10px] font-medium text-[var(--primary-foreground)]">
                         /control
                     </span>
                 </header>
 
+                <fieldset className="mb-3 flex flex-wrap gap-3 text-xs">
+                    <legend className="mb-1 font-medium">TfL map layers</legend>
+                    {(
+                        [
+                            ['roads', 'Road events'],
+                            ['bikes', 'Bike availability'],
+                            ['starterArcs', 'Starter arcs']
+                        ] as const
+                    ).map(([key, label]) => (
+                        <label key={key} className="flex items-center gap-1.5">
+                            <input
+                                type="checkbox"
+                                checked={tflLayers[key]}
+                                onChange={(event) =>
+                                    controlEngine.setTflLayers({ [key]: event.target.checked })
+                                }
+                            />
+                            {label}
+                        </label>
+                    ))}
+                </fieldset>
                 <section className="flex gap-4">
                     <div className="grid grid-cols-2 gap-2">
                         {cities.map((city) => (
@@ -72,6 +103,14 @@ function ControlPage() {
                         ))}
                     </div>
                     <div className="flex flex-col gap-2">
+                        <Button
+                            onClick={() => {
+                                controlEngine.selectCity('london');
+                                controlEngine.setSliderValue(50);
+                            }}
+                        >
+                            Focus London data
+                        </Button>
                         <Slider
                             value={sliderValue}
                             // Slider updates are throttled inside the engine before broadcasting.
@@ -87,7 +126,10 @@ function ControlPage() {
                             Selected Lines: {selectedSegmentIndexes.length}
                         </p>
                         <Button
-                            onClick={() => void controlEngine.shuffleSegments()}
+                            onClick={() => {
+                                controlEngine.setTflLayers({ starterArcs: true });
+                                void controlEngine.shuffleSegments();
+                            }}
                             variant="normal"
                         >
                             Shuffle Selection

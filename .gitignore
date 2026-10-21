@@ -26,3 +26,8 @@ dist-ssr
 # Dependency directories and files
 node_modules
 .vite*/
+.output/
+.tanstack/
+.env
+.env.*
+!.env.example

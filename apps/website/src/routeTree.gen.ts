@@ -14,6 +14,7 @@ import { Route as NoopRouteImport } from './routes/noop'
 import { Route as ControlRouteImport } from './routes/control'
 import { Route as BusRouteImport } from './routes/bus'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTflSourceRouteImport } from './routes/api.tfl.$source'
 
 const ScreenRoute = ScreenRouteImport.update({
   id: '/screen',
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTflSourceRoute = ApiTflSourceRouteImport.update({
+  id: '/api/tfl/$source',
+  path: '/api/tfl/$source',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/control': typeof ControlRoute
   '/noop': typeof NoopRoute
   '/screen': typeof ScreenRoute
+  '/api/tfl/$source': typeof ApiTflSourceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/control': typeof ControlRoute
   '/noop': typeof NoopRoute
   '/screen': typeof ScreenRoute
+  '/api/tfl/$source': typeof ApiTflSourceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/control': typeof ControlRoute
   '/noop': typeof NoopRoute
   '/screen': typeof ScreenRoute
+  '/api/tfl/$source': typeof ApiTflSourceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bus' | '/control' | '/noop' | '/screen'
+  fullPaths:
+    | '/'
+    | '/bus'
+    | '/control'
+    | '/noop'
+    | '/screen'
+    | '/api/tfl/$source'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bus' | '/control' | '/noop' | '/screen'
-  id: '__root__' | '/' | '/bus' | '/control' | '/noop' | '/screen'
+  to: '/' | '/bus' | '/control' | '/noop' | '/screen' | '/api/tfl/$source'
+  id:
+    | '__root__'
+    | '/'
+    | '/bus'
+    | '/control'
+    | '/noop'
+    | '/screen'
+    | '/api/tfl/$source'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +99,7 @@ export interface RootRouteChildren {
   ControlRoute: typeof ControlRoute
   NoopRoute: typeof NoopRoute
   ScreenRoute: typeof ScreenRoute
+  ApiTflSourceRoute: typeof ApiTflSourceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tfl/$source': {
+      id: '/api/tfl/$source'
+      path: '/api/tfl/$source'
+      fullPath: '/api/tfl/$source'
+      preLoaderRoute: typeof ApiTflSourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   ControlRoute: ControlRoute,
   NoopRoute: NoopRoute,
   ScreenRoute: ScreenRoute,
+  ApiTflSourceRoute: ApiTflSourceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

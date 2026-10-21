@@ -8,14 +8,16 @@ import type {
     ScreenSegmentSelectionMessage
 } from '../lib/realtime';
 import { isMapCity } from '../lib/realtime/map-cities';
+import { DEFAULT_TFL_LAYERS, parseTflLayers } from '../lib/tfl/types';
 
 // In-memory bus state for this server process.
 // New clients receive this snapshot in the `hello` handshake so they can
 // join late without waiting for another control interaction.
 const busSharedState: BusSharedState = {
     city: 'london',
-    zoom: 9,
-    selectedSegmentIndexes: []
+    zoom: 12,
+    selectedSegmentIndexes: [],
+    tflLayers: { ...DEFAULT_TFL_LAYERS }
 };
 
 const hooks = defineHooks({
@@ -67,6 +69,11 @@ const hooks = defineHooks({
 });
 
 function updateBusSharedState(payload: Partial<BusMessage>) {
+    if (payload.type === 'tfl/layers') {
+        const layers = parseTflLayers(payload.layers);
+        if (layers) busSharedState.tflLayers = layers;
+        return;
+    }
     if (payload.type === 'screen/map-view') {
         const message = payload as Partial<ScreenMapViewMessage>;
         // Preserve last known valid city/zoom for hello-state replay.
